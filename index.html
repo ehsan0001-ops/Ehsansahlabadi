@@ -1,0 +1,135 @@
+<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#16a34a"><title>Snapp Promoter Contracts</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--g1:#07682f;--g2:#12a653;--g3:#20c567;--ink:#12201a;--muted:#67796f;--line:#e6efe9;--bg:#eef4f0}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Tahoma,Arial,sans-serif}
+.hide{display:none!important}
+.top{background:linear-gradient(135deg,var(--g1),var(--g3));color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:0 8px 24px #07682f33}
+.top h1{margin:0;font-size:18px}.top .sub{font-size:12px;opacity:.85}
+.wrap{max-width:1200px;margin:16px auto;padding:0 12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 8px 24px #173d2810}
+.login{max-width:380px;margin:60px auto}.login h2{margin:0 0 4px}
+input,select,textarea{width:100%;border:1px solid #d9e4dd;border-radius:12px;padding:10px;font:inherit;background:#fbfdfc}
+input:focus,select:focus,textarea:focus{outline:2px solid #16a34a40;border-color:#16a34a}
+label{font-size:12px;font-weight:700;color:#3a463f;display:block;margin:10px 0 4px}
+button{font:inherit;cursor:pointer}
+.btn{border:0;border-radius:10px;padding:8px 12px;font-weight:900;font-size:12px;color:#fff}
+.primary{background:linear-gradient(135deg,var(--g2),var(--g3));border:0;color:#fff;border-radius:12px;padding:11px 16px;font-weight:900;width:100%}
+.ghost{background:#eaf7ef;color:var(--g1);border:0;border-radius:10px;padding:8px 12px;font-weight:900}
+.danger{background:#fdeceb;color:#b42318;border:0;border-radius:10px;padding:8px 12px;font-weight:900}
+.filters{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;align-items:center}
+@media(max-width:800px){.filters{grid-template-columns:1fr 1fr}.filters input{grid-column:1/-1}}
+.tw{overflow-x:auto;margin-top:12px}
+table{width:100%;border-collapse:collapse;min-width:820px}
+th{font-size:12px;color:var(--muted);text-align:right;padding:10px;border-bottom:2px solid var(--line);white-space:nowrap}
+td{padding:10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
+tr:hover td{background:#f7fbf8}
+.name{font-weight:900;border-bottom:1px dotted #9db2a5;display:inline-block}
+.code{font-size:11px;color:var(--muted)}
+.gen{display:flex;flex-wrap:wrap;gap:5px;max-width:330px}
+.b1{background:#2f9bf0}.b2{background:#0b5fd6}.b3{background:#ff9a1f}.b4{background:#e8710a}.b5{background:#8b5cf6}
+.bar{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:var(--muted);gap:8px;flex-wrap:wrap}
+.pg button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;margin:0 2px;font-weight:700}
+.pg button.on{background:var(--g2);color:#fff;border-color:var(--g2)}
+.modal{position:fixed;inset:0;background:#0009;z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:14px;overflow:auto}
+.mbox{background:#fff;border-radius:20px;padding:18px;width:100%;max-width:720px;margin:auto}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:600px){.g2,.g3{grid-template-columns:1fr}}
+.sec{font-weight:900;margin-top:14px;padding-top:10px;border-top:1px dashed var(--line);color:var(--g1)}
+.msg{font-size:12px;margin-top:8px}.err{color:#b42318}.ok{color:var(--g1)}
+.foot{text-align:center;color:#a7b3ac;font-size:11px;margin:20px 0}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#12201a;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;z-index:99}
+</style></head><body>
+
+<div id="loginView" class="login hide"><div class="card"><h2>Snapp Promoter Contracts</h2><div style="color:var(--muted);font-size:12px">مدیریت بازاریاب‌ها و صدور قرارداد</div>
+<form onsubmit="login();return false"><label>نام کاربری</label><input id="un" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="نام کاربری">
+<label>کلمه عبور</label><input id="pw" type="password" autocomplete="current-password" placeholder="کلمه عبور">
+<button class="primary" style="margin-top:14px" id="loginBtn" type="submit">ورود</button></form>
+<div id="lmsg" class="msg err"></div></div></div>
+
+<div id="appView" class="hide">
+<div class="top"><div><h1>📄 داشبورد قراردادهای بازاریاب — اسنپ</h1><div class="sub" id="who"></div></div><div><button class="ghost" onclick="openEdit(null)">➕ بازاریاب جدید</button> <button class="ghost hide" id="usersBtn" onclick="showUsers()">👥 کاربران</button> <button class="ghost" onclick="logout()">خروج</button></div></div>
+<div class="wrap"><div class="card">
+<div class="filters"><input id="q" placeholder="🔍 جستجوی نام، کد ملی، موبایل، کد بازاریاب یا شماره قرارداد..." oninput="pg=1;render()">
+<select id="fe" onchange="pg=1;render()"><option value="">همه کارشناسان</option></select>
+<select id="fc" onchange="pg=1;render()"><option value="">همه شهرها</option></select>
+<select id="fs" onchange="pg=1;render()"><option value="">همه سرپرست‌ها</option></select>
+<button class="ghost" onclick="clearF()">پاک‌کردن</button></div>
+<div class="bar"><span id="cnt"></span><span>تعداد در صفحه <select id="ps" style="width:auto;display:inline-block;padding:4px" onchange="pg=1;render()"><option>25</option><option>50</option><option>100</option></select></span></div>
+<div class="tw"><table><thead><tr><th>ردیف</th><th>نام کارشناس</th><th>نام و نام خانوادگی</th><th>کد ملی</th><th>شماره قرارداد</th><th>تاریخ شروع</th><th>عملیات</th></tr></thead><tbody id="tb"></tbody></table></div>
+<div class="bar"><span></span><span class="pg" id="pgn"></span></div></div>
+<div class="foot">Snapp Promoter Contracts · © 2026 Ehsan Sahlabadi</div></div></div>
+
+<div id="modal" class="modal hide"><div class="mbox">
+<div style="display:flex;justify-content:space-between;align-items:center"><b id="mt">بازاریاب</b><button class="ghost" onclick="closeM()">✕</button></div>
+<div class="sec">مشخصات فردی</div>
+<div class="g2"><div><label>نام و نام خانوادگی *</label><input id="f_full_name"></div><div><label>نام پدر</label><input id="f_father_name"></div>
+<div><label>شماره شناسنامه</label><input id="f_id_booklet_no"></div><div><label>کد ملی *</label><input id="f_national_id" inputmode="numeric"></div>
+<div><label>تاریخ تولد (مثلاً 1370/05/12)</label><input id="f_birth_date"></div><div><label>محل تولد</label><input id="f_birth_place"></div>
+<div><label>وضعیت تأهل</label><select id="f_marital_status"><option>مجرد</option><option>متأهل</option></select></div>
+<div><label>وضعیت خدمت</label><select id="f_military_status"><option>پایان خدمت</option><option>معافیت</option><option>مشمول</option><option>مشمول نیست (خانم)</option></select></div></div>
+<div class="sec">تماس و بانکی</div>
+<div class="g2"><div style="grid-column:1/-1"><label>نشانی</label><textarea id="f_address" rows="2"></textarea></div>
+<div><label>کد پستی</label><input id="f_postal_code" inputmode="numeric"></div><div><label>شماره ثابت</label><input id="f_phone_landline" inputmode="numeric"></div>
+<div><label>شماره همراه</label><input id="f_mobile" inputmode="numeric"></div><div><label>نام بانک</label><input id="f_bank_name"></div>
+<div style="grid-column:1/-1"><label>شماره حساب (شبا)</label><input id="f_bank_account" style="direction:ltr;text-align:left"></div></div>
+<div class="sec">سازمانی</div>
+<div class="g3"><div><label>کد بازاریاب</label><input id="f_promoter_code"></div><div><label>نام کارشناس</label><input id="f_expert_name"></div><div><label>سرپرست</label><input id="f_supervisor_name"></div>
+<div><label>شهر فعالیت (در قرارداد)</label><input id="f_activity_city" placeholder="مثلاً اراک"></div></div>
+<div class="sec">قرارداد</div>
+<div class="g2"><div><label>شماره قرارداد *</label><input id="f_contract_number" style="direction:ltr;text-align:left" placeholder="SN-..."></div>
+<div><label>تاریخ قرارداد / شروع * (1405/07/10)</label><input id="f_contract_date" oninput="autoEnd()"></div>
+<div><label>تاریخ پایان</label><input id="f_contract_end_date"></div><div><label>مدت (روز)</label><input id="f_duration_days"></div></div>
+<div style="display:flex;gap:8px;margin-top:16px"><button class="primary" onclick="saveM()">ذخیره</button><button class="danger" id="delBtn" onclick="delM()">حذف</button></div>
+<div id="mmsg" class="msg"></div></div></div>
+
+<script>
+const FIELDS=['full_name','father_name','id_booklet_no','national_id','birth_date','birth_place','marital_status','military_status','address','postal_code','phone_landline','mobile','bank_name','bank_account','promoter_code','expert_name','supervisor_name','activity_city','contract_number','contract_date','contract_end_date','duration_days'];
+let rows=[],pg=1,editId=null;
+const $=id=>document.getElementById(id);
+const digits=s=>String(s||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).trim();
+function toast(t){let e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),2600)}
+function netMsg(e){let m=String((e&&e.message)||e||'');return /failed to fetch|networkerror|load failed/i.test(m)?'اتصال به سرور برقرار نشد. بررسی کنید: ۱) پروژه‌ی Supabase در حالت Paused نباشد ۲) اینترنت/VPN ۳) افزونه‌ی AdBlock. (خطای فنی: '+m+')':m}
+async function api(p,o={}){o.credentials='same-origin';o.headers={'Content-Type':'application/json'};if(o.body&&typeof o.body!=='string')o.body=JSON.stringify(o.body);let r=await fetch('/api/'+p,o),j={};try{j=await r.json()}catch(e){}if(!r.ok){let e=new Error(j.error||'خطای ارتباط با سرور ('+r.status+')');e.status=r.status;throw e}return j}
+let me=null;
+function showLogin(){me=null;$('appView').classList.add('hide');$('loginView').classList.remove('hide')}
+async function login(){$('lmsg').textContent='';let u=$('un').value.trim(),p=$('pw').value;if(!u||!p){$('lmsg').textContent='نام کاربری و کلمه عبور را وارد کنید';return}
+ let b=$('loginBtn');b.disabled=true;b.textContent='در حال ورود...';
+ try{await api('login',{method:'POST',body:{username:u,password:p}});$('pw').value='';await boot()}catch(e){$('lmsg').textContent=netMsg(e)}
+ b.disabled=false;b.textContent='ورود'}
+async function logout(){try{await api('logout',{method:'POST'})}catch(e){}location.reload()}
+async function boot(){try{me=await api('me')}catch(e){showLogin();return}
+ $('who').textContent='کاربر: '+me.username+' ('+(me.role==='admin'?'مدیر':'کاربر')+')';$('usersBtn').classList.toggle('hide',me.role!=='admin');$('loginView').classList.add('hide');$('appView').classList.remove('hide');await load()}
+async function showUsers(){try{let j=await api('users');alert('کاربران سیستم:\n'+j.users.map(x=>x.username+' — '+(x.role==='admin'?'مدیر':'کاربر')).join('\n'))}catch(e){toast(e.message)}}
+async function load(){try{rows=(await api('promoters')).rows}catch(e){if(e.status===401){showLogin();return}toast(netMsg(e));return}fillSel();render()}
+function fillSel(){[['fe','expert_name'],['fc','activity_city'],['fs','supervisor_name']].forEach(([id,k])=>{let cur=$(id).value,first=$(id).options[0].outerHTML;let vals=[...new Set(rows.map(r=>r[k]).filter(Boolean))].sort();$(id).innerHTML=first+vals.map(v=>`<option>${v}</option>`).join('');$(id).value=cur})}
+function clearF(){$('q').value='';['fe','fc','fs'].forEach(i=>$(i).value='');pg=1;render()}
+function filtered(){let q=digits($('q').value).toLowerCase(),e=$('fe').value,c=$('fc').value,s=$('fs').value;return rows.filter(r=>(!e||r.expert_name===e)&&(!c||r.activity_city===c)&&(!s||r.supervisor_name===s)&&(!q||[r.full_name,r.national_id,r.mobile,r.promoter_code,r.contract_number].join(' ').toLowerCase().includes(q)))}
+function render(){let f=filtered(),ps=+$('ps').value,pages=Math.max(1,Math.ceil(f.length/ps));if(pg>pages)pg=pages;let sl=f.slice((pg-1)*ps,pg*ps);$('cnt').textContent=f.length+' رکورد یافت شد';
+ $('tb').innerHTML=sl.map((r,i)=>`<tr><td>${(pg-1)*ps+i+1}</td><td>${r.expert_name||'—'}</td><td><span class="name">${r.full_name}</span><div class="code">کد بازاریاب: ${r.promoter_code||'—'}</div></td><td>${r.national_id||'—'} ${r.national_id?`<button class="ghost" style="padding:2px 6px" onclick="navigator.clipboard.writeText('${r.national_id}');toast('کپی شد')">⧉</button>`:''}</td><td style="direction:ltr;text-align:right">${r.contract_number||'—'}</td><td>${r.contract_date||'—'}</td>
+ <td><div class="gen"><button class="btn b1" onclick="gen('${r.id}','box','plain')">Box ساده</button><button class="btn b2" onclick="gen('${r.id}','box','letter')">Box سربرگ</button><button class="btn b3" onclick="gen('${r.id}','cab','plain')">Cab ساده</button><button class="btn b4" onclick="gen('${r.id}','cab','letter')">Cab سربرگ</button><button class="btn b5" onclick="openEdit('${r.id}')">جزئیات / ویرایش</button></div></td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">موردی یافت نشد</td></tr>';
+ let b='';for(let p=1;p<=pages;p++)if(p===1||p===pages||Math.abs(p-pg)<=1)b+=`<button class="${p===pg?'on':''}" onclick="pg=${p};render()">${p}</button>`;else if(Math.abs(p-pg)===2)b+='…';$('pgn').innerHTML=b}
+function openEdit(id){editId=id;let r=id?rows.find(x=>x.id===id):{marital_status:'مجرد',military_status:'پایان خدمت',duration_days:'365',contract_date:today()};
+ FIELDS.forEach(k=>$('f_'+k).value=r[k]||'');$('mt').textContent=id?'ویرایش: '+r.full_name:'بازاریاب جدید';$('delBtn').classList.toggle('hide',!id||!me||me.role!=='admin');$('mmsg').textContent='';$('modal').classList.remove('hide')}
+function closeM(){$('modal').classList.add('hide')}
+function today(){try{return new Date().toLocaleDateString('fa-IR-u-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/-/g,'/')}catch(e){return''}}
+function autoEnd(){let m=digits($('f_contract_date').value).match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);if(m&&!$('f_contract_end_date').dataset.touched){$('f_contract_end_date').value='29/12/'+(+m[1]+1)}}
+async function saveM(){let o={};FIELDS.forEach(k=>o[k]=$('f_'+k).value.trim());['national_id','id_booklet_no','postal_code','phone_landline','mobile','contract_date','contract_end_date','duration_days','birth_date','promoter_code'].forEach(k=>o[k]=digits(o[k]));o.bank_account=digits(o.bank_account).toUpperCase();
+ if(!o.full_name){$('mmsg').className='msg err';$('mmsg').textContent='نام الزامی است';return}o.updated_at=new Date().toISOString();
+ try{await api('promoters'+(editId?'?id='+encodeURIComponent(editId):''),{method:editId?'PATCH':'POST',body:o})}catch(error){$('mmsg').className='msg err';$('mmsg').textContent=error.message;return}closeM();await load();toast('ذخیره شد ✓')}
+async function delM(){if(!editId||!confirm('این بازاریاب و اطلاعاتش حذف شود؟'))return;try{await api('promoters?id='+encodeURIComponent(editId),{method:'DELETE'})}catch(error){$('mmsg').textContent=error.message;return}closeM();await load()}
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+async function gen(id,type,mode){let r=rows.find(x=>x.id===id);let miss=[];[['full_name','نام'],['national_id','کد ملی'],['contract_number','شماره قرارداد'],['contract_date','تاریخ قرارداد']].forEach(([k,l])=>{if(!r[k])miss.push(l)});
+ if(miss.length&&!confirm('این فیلدها خالی هستند: '+miss.join('، ')+'\nبا نقطه‌چین صادر شود؟'))return;
+ try{let t=await api('template?type='+type);let zip=await JSZip.loadAsync(t.b64,{base64:true});
+  let V={FULL_NAME:r.full_name,FATHER_NAME:r.father_name,ID_BOOKLET_NO:r.id_booklet_no,BIRTH_DATE:r.birth_date,BIRTH_PLACE:r.birth_place,MARITAL_STATUS:r.marital_status,MILITARY_STATUS:r.military_status,NATIONAL_ID:r.national_id,ADDRESS:r.address,POSTAL_CODE:r.postal_code,PHONE_LANDLINE:r.phone_landline,MOBILE:r.mobile,BANK_ACCOUNT:r.bank_account,BANK_NAME:r.bank_name,CONTRACT_DATE:r.contract_date,CONTRACT_END_DATE:r.contract_end_date,CONTRACT_DURATION_DAYS:r.duration_days,CONTRACT_NUMBER:r.contract_number,CITY:r.activity_city};
+  for(const n of Object.keys(zip.files)){if(!/^word\/(document|header\d*|footer\d*)\.xml$/.test(n))continue;let x=await zip.file(n).async('string');
+   for(const k in V)x=x.split('{{'+k+'}}').join(esc(V[k]||'..........'));
+   if(mode==='plain')x=x.replace(/<w:drawing>[\s\S]*?<\/w:drawing>/g,'');
+   zip.file(n,x)}
+  let blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6},mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(`قرارداد_${type==='cab'?'Cab':'Box'}_${mode==='plain'?'ساده':'سربرگ'}_${r.full_name}`.replace(/[\\\/:*?"<>|&]/g,'-'))+'.docx';document.body.appendChild(a);a.click();a.remove();toast('فایل قرارداد ساخته شد ✓')
+ }catch(e){alert('خطا در ساخت قرارداد: '+e.message)}}
+$('f_contract_end_date').addEventListener('input',e=>e.target.dataset.touched='1');
+boot();
+</script></body></html>
