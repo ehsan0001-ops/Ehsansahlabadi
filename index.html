@@ -104,10 +104,9 @@ async function login(){$('lmsg').textContent='';let u=$('un').value.trim(),p=$('
  try{await api('login',{method:'POST',body:{username:u,password:p}});$('pw').value='';await boot()}catch(e){$('lmsg').textContent=netMsg(e)}
  b.disabled=false;b.textContent='ورود'}
 async function logout(){try{await api('logout',{method:'POST'})}catch(e){}location.reload()}
-async async function boot(){try{me=await api('me')}catch(e){showLogin();return}
- $('who').textContent='کاربر: '+(me.name||me.username)+' — '+({admin:'مدیر',supervisor:'ناظر',specialist:'کارشناس'}[me.role]||me.role)+(me.city?' — '+me.city:'');
- $('usersBtn').classList.toggle('hide',me.role!=='admin');$('loginView').classList.add('hide');$('appView').classList.remove('hide');await load()}
-async function showUsers(){try{let j=await api('users');let s=j.users.map(x=>x.username+' — '+x.name+' — '+({admin:'مدیر',supervisor:'ناظر',specialist:'کارشناس'}[x.role]||x.role)+' — '+(x.city||'همه شهرها')+' — '+(x.active?'فعال':'غیرفعال')).join('\n');alert('کاربران سیستم:\n\n'+s+'\n\nمدیریت کامل کاربران در نسخه بعدی همین بخش اضافه می‌شود.')}catch(e){toast(e.message)}}
+async function boot(){try{me=await api('me')}catch(e){showLogin();return}
+ $('who').textContent='کاربر: '+me.username+' ('+(me.role==='admin'?'مدیر':'کاربر')+')';$('usersBtn').classList.toggle('hide',me.role!=='admin');$('loginView').classList.add('hide');$('appView').classList.remove('hide');await load()}
+async function showUsers(){try{let j=await api('users');alert('کاربران سیستم:\n'+j.users.map(x=>x.username+' — '+(x.role==='admin'?'مدیر':'کاربر')).join('\n'))}catch(e){toast(e.message)}}
 async function load(){try{rows=(await api('promoters')).rows}catch(e){if(e.status===401){showLogin();return}toast(netMsg(e));return}fillSel();render()}
 function fillSel(){[['fe','expert_name'],['fc','activity_city'],['fs','supervisor_name']].forEach(([id,k])=>{let cur=$(id).value,first=$(id).options[0].outerHTML;let vals=[...new Set(rows.map(r=>r[k]).filter(Boolean))].sort();$(id).innerHTML=first+vals.map(v=>`<option>${v}</option>`).join('');$(id).value=cur})}
 function clearF(){$('q').value='';['fe','fc','fs'].forEach(i=>$(i).value='');pg=1;render()}
