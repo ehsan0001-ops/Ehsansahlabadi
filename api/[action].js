@@ -7,7 +7,8 @@ const JEND=parseJ('29/12/1405');
 const LBL={full_name:'نام و نام خانوادگی',father_name:'نام پدر',id_booklet_no:'شماره شناسنامه',national_id:'کد ملی',birth_date:'تاریخ تولد',birth_place:'محل تولد',marital_status:'وضعیت تأهل',military_status:'وضعیت خدمت',address:'نشانی',postal_code:'کد پستی',phone_landline:'شماره ثابت',mobile:'شماره همراه',bank_name:'نام بانک',bank_account:'شماره حساب (شبا)',promoter_code:'کد بازاریاب',expert_name:'نام کارشناس',supervisor_name:'نام ناظر قرارداد',activity_city:'شهر فعالیت',contract_number:'شماره قرارداد',contract_date:'تاریخ قرارداد'};
 const REQ=Object.keys(LBL),UID=/^[\w-]{1,64}$/,KIND=['selfie','identity','bank','sana'],MIME={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'};
 const ST=()=>process.env.SUPABASE_URL+'/storage/v1';
-async function st(p,o={}){const K=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!K||!process.env.SUPABASE_URL)throw new Error('cfg');const r=await fetch(ST()+p,{...o,headers:{apikey:K,Authorization:'Bearer '+K,'Content-Type':'application/json',...(o.headers||{})}});const t=await r.text();if(!r.ok)throw new Error('st:'+r.status+' '+t.slice(0,150));return t?JSON.parse(t):{}}
+async function st(p,o={}){const K=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!K||!process.env.SUPABASE_URL)throw new Error('cfg');const r=await fetch(ST()+p,{...o,headers:{apikey:K,Authorization:'Bearer '+K,...(o.body?{'Content-Type':'application/json'}:{}),...(o.headers||{})}});const t=await r.text();if(!r.ok)throw new Error('st:'+r.status+' '+t.slice(0,150));return t?JSON.parse(t):{}}
+const rm=a=>st('/object/promoter-docs',{method:'DELETE',body:JSON.stringify({prefixes:a})});
 async function all(q){let rows=[];for(let i=0;;i+=1000){let b;try{b=await sb(q,{headers:{Range:i+'-'+(i+999)}})}catch(e){if(String(e.message).includes('db:416'))break;throw e}rows=rows.concat(b);if(b.length<1000)break}return rows}
 const FIELDS=['full_name','father_name','id_booklet_no','national_id','birth_date','birth_place','marital_status','military_status','address','postal_code','phone_landline','mobile','bank_name','bank_account','promoter_code','expert_name','supervisor_name','activity_city','contract_number','contract_date','contract_end_date','duration_days'];
 const DUMMY='scrypt$AAAAAAAAAAAAAAAAAAAAAA==$'+Buffer.alloc(32).toString('base64');
@@ -19,7 +20,7 @@ function verify(t){const[d,s]=String(t||'').split('.');if(!d||!s)return null;con
 const users=()=>{try{return JSON.parse(process.env.AUTH_USERS||'[]')}catch{return[]}};
 function checkPw(pw,h){const[t,s,x]=String(h).split('$');if(t!=='scrypt')return false;const d=c.scryptSync(pw,Buffer.from(s,'base64'),32),e=Buffer.from(x,'base64');return e.length===d.length&&c.timingSafeEqual(d,e)}
 function sess(req){const k=(req.headers.cookie||'').split(/;\s*/).find(x=>x.startsWith('sid='));const p=k&&verify(k.slice(4));const u=p&&users().find(x=>x.u===p.u);return u?{u:u.u,r:u.r}:null}
-async function sb(path,o={}){const K=process.env.SUPABASE_SERVICE_ROLE_KEY,U=process.env.SUPABASE_URL;if(!K||!U)throw new Error('cfg');const r=await fetch(U+'/rest/v1/'+path,{...o,headers:{apikey:K,Authorization:'Bearer '+K,'Content-Type':'application/json','Range-Unit':'items',Prefer:'return=representation',...(o.headers||{})}});const t=await r.text();if(!r.ok)throw new Error('db:'+r.status+' '+t.slice(0,200));return t?JSON.parse(t):[]}
+async function sb(path,o={}){const K=process.env.SUPABASE_SERVICE_ROLE_KEY,U=process.env.SUPABASE_URL;if(!K||!U)throw new Error('cfg');const r=await fetch(U+'/rest/v1/'+path,{...o,headers:{apikey:K,Authorization:'Bearer '+K,...(o.body?{'Content-Type':'application/json'}:{}),'Range-Unit':'items',Prefer:'return=representation',...(o.headers||{})}});const t=await r.text();if(!r.ok)throw new Error('db:'+r.status+' '+t.slice(0,200));return t?JSON.parse(t):[]}
 module.exports=async(req,res)=>{
  res.setHeader('Cache-Control','no-store');
  const a=req.query.action,m=req.method,send=(s,o)=>res.status(s).json(o);
@@ -52,18 +53,18 @@ module.exports=async(req,res)=>{
     if(m==='POST'){const r=await sb('contract_promoters',{method:'POST',body:JSON.stringify(o)});return send(200,{ok:true,id:r[0]&&r[0].id})}
     if(!UID.test(id))return send(400,{error:'شناسه نامعتبر'});await sb('contract_promoters?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(o)});return send(200,{ok:true,id})}
    if(m==='DELETE'){if(!admin)return send(403,{error:'فقط مدیر می‌تواند حذف کند'});if(!UID.test(id))return send(400,{error:'شناسه نامعتبر'});
-    for(const f of await sb('promoter_files?select=storage_path&promoter_id=eq.'+encodeURIComponent(id)))await st('/object/promoter-docs/'+f.storage_path,{method:'DELETE'}).catch(()=>{});
+    for(const f of await sb('promoter_files?select=storage_path&promoter_id=eq.'+encodeURIComponent(id)))await rm([f.storage_path]).catch(()=>{});
     await sb('contract_promoters?id=eq.'+encodeURIComponent(id),{method:'DELETE'});return send(200,{ok:true})}
   }
   if(a==='files'&&m==='GET'){if(!UID.test(id))return send(400,{error:'شناسه نامعتبر'});return send(200,{files:await sb('promoter_files?select=id,kind,file_name,size_bytes,uploaded_by,uploaded_at&promoter_id=eq.'+encodeURIComponent(id))})}
   if(a==='upload'&&m==='POST'){const b=req.body||{},ext=MIME[b.mime];if(!UID.test(String(b.promoter_id))||!KIND.includes(b.kind)||!ext||!(b.size>0&&b.size<=10485760))return send(400,{error:'نوع یا حجم فایل مجاز نیست (تصویر یا PDF تا ۱۰ مگابایت)'});
-   const path=b.promoter_id+'/'+b.kind+'-'+Date.now()+'-'+c.randomBytes(4).toString('hex')+'.'+ext,j=await st('/object/upload/sign/promoter-docs/'+path,{method:'POST'}),u=j.url||j.signedUrl;return send(200,{path,url:/^http/.test(u)?u:ST()+u})}
+   const path=b.promoter_id+'/'+b.kind+'-'+Date.now()+'-'+c.randomBytes(4).toString('hex')+'.'+ext,j=await st('/object/upload/sign/promoter-docs/'+path,{method:'POST',body:'{}'}),u=j.url||j.signedUrl;return send(200,{path,url:/^http/.test(u)?u:ST()+u})}
   if(a==='fileok'&&m==='POST'){const b=req.body||{};if(!UID.test(String(b.promoter_id))||!KIND.includes(b.kind)||!String(b.path).startsWith(b.promoter_id+'/'+b.kind+'-'))return send(400,{error:'درخواست نامعتبر'});
    const old=await sb('promoter_files?select=storage_path&promoter_id=eq.'+b.promoter_id+'&kind=eq.'+b.kind);
    await sb('promoter_files?on_conflict=promoter_id,kind',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({promoter_id:b.promoter_id,kind:b.kind,file_name:String(b.file_name||'').slice(0,200),storage_path:b.path,mime_type:b.mime,size_bytes:b.size,uploaded_by:s.u,uploaded_at:new Date().toISOString()})});
-   for(const f of old)if(f.storage_path!==b.path)await st('/object/promoter-docs/'+f.storage_path,{method:'DELETE'}).catch(()=>{});return send(200,{ok:true})}
+   for(const f of old)if(f.storage_path!==b.path)await rm([f.storage_path]).catch(()=>{});return send(200,{ok:true})}
   if(a==='fileview'&&m==='GET'){if(!UID.test(id))return send(400,{error:'شناسه نامعتبر'});const row=(await sb('promoter_files?select=storage_path&id=eq.'+encodeURIComponent(id)))[0];if(!row)return send(404,{error:'یافت نشد'});const j=await st('/object/sign/promoter-docs/'+row.storage_path,{method:'POST',body:JSON.stringify({expiresIn:60})});return send(200,{url:ST()+j.signedURL})}
-  if(a==='filedel'&&m==='DELETE'){if(!admin)return send(403,{error:'فقط مدیر می‌تواند حذف کند'});if(!UID.test(id))return send(400,{error:'شناسه نامعتبر'});const row=(await sb('promoter_files?select=storage_path&id=eq.'+encodeURIComponent(id)))[0];if(row)await st('/object/promoter-docs/'+row.storage_path,{method:'DELETE'}).catch(()=>{});await sb('promoter_files?id=eq.'+encodeURIComponent(id),{method:'DELETE'});return send(200,{ok:true})}
+  if(a==='filedel'&&m==='DELETE'){if(!admin)return send(403,{error:'فقط مدیر می‌تواند حذف کند'});if(!UID.test(id))return send(400,{error:'شناسه نامعتبر'});const row=(await sb('promoter_files?select=storage_path&id=eq.'+encodeURIComponent(id)))[0];if(row)await rm([row.storage_path]).catch(()=>{});await sb('promoter_files?id=eq.'+encodeURIComponent(id),{method:'DELETE'});return send(200,{ok:true})}
   return send(404,{error:'یافت نشد'});
  }catch(e){return send(500,{error:e.message==='cfg'?'تنظیمات سرور ناقص است (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)':'خطا در ارتباط با پایگاه داده: '+String(e.message).slice(0,200)})}
 };
