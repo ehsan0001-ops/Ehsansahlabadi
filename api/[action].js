@@ -5,12 +5,14 @@ const _p2=n=>String(n).padStart(2,'0');
 function parseJ(s){s=String(s||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).trim();let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/),y,mo,d;if(m){d=+m[1];mo=+m[2];y=+m[3]}else if(m=s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/)){y=+m[1];mo=+m[2];d=+m[3]}else return null;if(mo<1||mo>12||d<1||d>31)return null;const base=Date.UTC(y+621,2,21)+((mo<=6?(mo-1)*31:186+(mo-7)*30)+d-1)*864e5;for(let k=-2;k<=2;k++){const t=base+k*864e5,j=_toJ(t);if(j[0]===y&&j[1]===mo&&j[2]===d)return{t,s:_p2(d)+'/'+_p2(mo)+'/'+y}}return null}
 const JEND=parseJ('29/12/1405');
 const LBL={full_name:'نام و نام خانوادگی',father_name:'نام پدر',id_booklet_no:'شماره شناسنامه',national_id:'کد ملی',birth_date:'تاریخ تولد',birth_place:'محل تولد',marital_status:'وضعیت تأهل',military_status:'وضعیت خدمت',address:'نشانی',postal_code:'کد پستی',phone_landline:'شماره ثابت',mobile:'شماره همراه',bank_name:'نام بانک',bank_account:'شماره حساب (شبا)',promoter_code:'کد بازاریاب',expert_name:'نام کارشناس',supervisor_name:'نام ناظر قرارداد',activity_city:'شهر فعالیت',contract_number:'شماره قرارداد',contract_date:'تاریخ قرارداد'};
-const REQ=Object.keys(LBL),UID=/^[\w-]{1,64}$/,KIND=['selfie','identity','bank','sana'],MIME={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'};
+const EXP={'احسان سهل آبادی':'اراک','محمد سهل آبادی':'اراک','حسن آقاجان زاده':'قزوین','صمد شمسینی':'قزوین','علیرضا زین العابدینی':'قم'},CODE={'اراک':'13','قزوین':'12','قم':'6'};
+const dg=s=>String(s||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+const REQ=Object.keys(LBL).filter(k=>!['contract_number','promoter_code','activity_city'].includes(k)),UID=/^[\w-]{1,64}$/,KIND=['selfie','identity','bank','sana'],MIME={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'};
 const ST=()=>process.env.SUPABASE_URL+'/storage/v1';
 async function st(p,o={}){const K=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!K||!process.env.SUPABASE_URL)throw new Error('cfg');const r=await fetch(ST()+p,{...o,headers:{apikey:K,Authorization:'Bearer '+K,...(o.body?{'Content-Type':'application/json'}:{}),...(o.headers||{})}});const t=await r.text();if(!r.ok)throw new Error('st:'+r.status+' '+t.slice(0,150));return t?JSON.parse(t):{}}
 const rm=a=>st('/object/promoter-docs',{method:'DELETE',body:JSON.stringify({prefixes:a})});
 async function all(q){let rows=[];for(let i=0;;i+=1000){let b;try{b=await sb(q,{headers:{Range:i+'-'+(i+999)}})}catch(e){if(String(e.message).includes('db:416'))break;throw e}rows=rows.concat(b);if(b.length<1000)break}return rows}
-const FIELDS=['full_name','father_name','id_booklet_no','national_id','birth_date','birth_place','marital_status','military_status','address','postal_code','phone_landline','mobile','bank_name','bank_account','promoter_code','expert_name','supervisor_name','activity_city','contract_number','contract_date','contract_end_date','duration_days'];
+const FIELDS=['promoter_kind','full_name','father_name','id_booklet_no','national_id','birth_date','birth_place','marital_status','military_status','address','postal_code','phone_landline','mobile','bank_name','bank_account','promoter_code','expert_name','supervisor_name','activity_city','contract_number','contract_date','contract_end_date','duration_days'];
 const DUMMY='scrypt$AAAAAAAAAAAAAAAAAAAAAA==$'+Buffer.alloc(32).toString('base64');
 const tries=new Map();
 const sec=()=>process.env.SESSION_SECRET||'';
@@ -46,12 +48,24 @@ module.exports=async(req,res)=>{
   if(a==='promoters'){
    if(m==='GET'){const[rows,fl]=await Promise.all([all('contract_promoters?select=*&order=full_name'),all('promoter_files?select=promoter_id,kind&order=id')]);const mp={};fl.forEach(f=>(mp[f.promoter_id]=mp[f.promoter_id]||[]).push(f.kind));rows.forEach(r=>r.docs=mp[r.id]||[]);return send(200,{rows})}
    if(m==='POST'||m==='PATCH'){const b=req.body||{},o={};FIELDS.forEach(k=>o[k]=b[k]==null?'':String(b[k]).trim().slice(0,500));
+    ['national_id','promoter_code','mobile','postal_code','phone_landline','id_booklet_no'].forEach(k=>o[k]=dg(o[k]));
+    o.bank_account=dg(o.bank_account).replace(/\s+/g,'').toUpperCase();o.promoter_kind=o.promoter_kind==='old'?'old':'new';
     for(const k of REQ)if(!o[k])return send(400,{error:'فیلد «'+LBL[k]+'» الزامی است'});
+    if(!EXP[o.expert_name])return send(400,{error:'نام کارشناس نامعتبر است'});o.activity_city=EXP[o.expert_name];
+    if(!/^\d{10}$/.test(o.national_id))return send(400,{error:'کد ملی باید دقیقاً ۱۰ رقم باشد'});
+    if(o.promoter_kind==='old'){if(!/^\d{5}$/.test(o.promoter_code))return send(400,{error:'کد بازاریابی باید دقیقاً ۵ رقم باشد'})}else o.promoter_code='';
+    if(!/^IR\d{24}$/.test(o.bank_account))return send(400,{error:'شماره شبا صحیح نمی باشد'});
     const cd=parseJ(o.contract_date),bd=parseJ(o.birth_date);if(!cd||!bd)return send(400,{error:'تاریخ نامعتبر است؛ قالب صحیح مانند 10/10/1405'});
     const dur=Math.round((JEND.t-cd.t)/864e5);if(dur<0)return send(400,{error:'تاریخ قرارداد نباید بعد از 29/12/1405 باشد'});
     o.contract_date=cd.s;o.birth_date=bd.s;o.contract_end_date=JEND.s;o.duration_days=String(dur);o.updated_at=new Date().toISOString();
-    if(m==='POST'){const r=await sb('contract_promoters',{method:'POST',body:JSON.stringify(o)});return send(200,{ok:true,id:r[0]&&r[0].id})}
-    if(!UID.test(id))return send(400,{error:'شناسه نامعتبر'});await sb('contract_promoters?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(o)});return send(200,{ok:true,id})}
+    const idp=o.promoter_kind==='old'?o.promoter_code:o.national_id;delete o.contract_number;
+    if(m==='POST'){o.id_part=idp;const r=await sb('rpc/create_promoter',{method:'POST',body:JSON.stringify({p:o})}),row=Array.isArray(r)?r[0]:r;return send(200,{ok:true,id:row&&row.id,contract_number:row&&row.contract_number})}
+    if(!UID.test(id))return send(400,{error:'شناسه نامعتبر'});
+    const cur=(await sb('contract_promoters?select=contract_number,activity_city&id=eq.'+encodeURIComponent(id)))[0];if(!cur)return send(404,{error:'یافت نشد'});
+    let seq=(String(cur.contract_number||'').match(/-(\d+)\s*$/)||[])[1];
+    if(!seq||cur.activity_city!==o.activity_city)seq=String(await sb('rpc/next_contract_no',{method:'POST',body:JSON.stringify({p_city:o.activity_city})}));
+    o.contract_number='Sn-'+CODE[o.activity_city]+'-'+idp+'-'+seq;
+    await sb('contract_promoters?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(o)});return send(200,{ok:true,id,contract_number:o.contract_number})}
    if(m==='DELETE'){if(!admin)return send(403,{error:'فقط مدیر می‌تواند حذف کند'});if(!UID.test(id))return send(400,{error:'شناسه نامعتبر'});
     for(const f of await sb('promoter_files?select=storage_path&promoter_id=eq.'+encodeURIComponent(id)))await rm([f.storage_path]).catch(()=>{});
     await sb('contract_promoters?id=eq.'+encodeURIComponent(id),{method:'DELETE'});return send(200,{ok:true})}
