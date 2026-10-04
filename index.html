@@ -53,7 +53,7 @@ input,button,select,textarea{font-family:inherit}
 <div id="lmsg" class="msg err"></div></div></div>
 
 <div id="appView" class="hide">
-<div class="top"><div><h1>📄 داشبورد قراردادهای بازاریاب — اسنپ</h1><div class="sub" id="who"></div></div><div><button class="ghost" onclick="openEdit(null)">➕ بازاریاب جدید</button> <button class="ghost hide" id="usersBtn" onclick="showUsers()">👥 کاربران</button> <button class="ghost" onclick="logout()">خروج</button></div></div>
+<div class="top"><div><h1>📄 داشبورد قراردادهای بازاریاب — اسنپ</h1><div class="sub" id="who"></div></div><div><button class="ghost" onclick="openEdit(null)">➕ بازاریاب جدید</button> <button class="ghost" onclick="showCard()">🪪 کارت شناسایی</button> <button class="ghost hide" id="usersBtn" onclick="showUsers()">👥 کاربران</button> <button class="ghost" onclick="logout()">خروج</button></div></div>
 <div class="wrap"><div class="card">
 <div class="filters"><input id="q" placeholder="🔍 جستجوی نام، کد ملی، موبایل، کد بازاریاب یا شماره قرارداد..." oninput="pg=1;render()">
 <select id="fe" onchange="pg=1;render()"><option value="">همه کارشناسان</option></select>
@@ -106,8 +106,26 @@ async function login(){$('lmsg').textContent='';let u=$('un').value.trim(),p=$('
  b.disabled=false;b.textContent='ورود'}
 async function logout(){try{await api('logout',{method:'POST'})}catch(e){}location.reload()}
 async function boot(){try{me=await api('me')}catch(e){showLogin();return}
- $('who').textContent='کاربر: '+me.username+' ('+(me.role==='admin'?'مدیر':'کاربر')+')';$('usersBtn').classList.toggle('hide',me.role!=='admin');$('loginView').classList.add('hide');$('appView').classList.remove('hide');await load()}
-async function showUsers(){try{let j=await api('users');alert('کاربران سیستم:\n'+j.users.map(x=>x.username+' — '+(x.role==='admin'?'مدیر':'کاربر')).join('\n'))}catch(e){toast(e.message)}}
+ $('who').textContent='کاربر: '+me.username+' ('+(ROLEFA[me.role]||me.role)+')';$('usersBtn').classList.toggle('hide',me.role!=='super_admin');$('loginView').classList.add('hide');$('appView').classList.remove('hide');await load()}
+const ROLEFA={super_admin:'مدیر کل',manager:'مدیر',supervisor:'سرپرست',specialist:'کارشناس',viewer:'فقط‌مشاهده'};
+let ulist=[],uedit=null;
+async function showUsers(){try{ulist=(await api('users')).users;uedit=null;renderUsers()}catch(e){toast(e.message)}}
+function renderUsers(){let p=$('upanel');if(!p){p=document.createElement('div');p.id='upanel';p.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;overflow:auto;padding:16px';document.body.appendChild(p)}
+ let u=uedit||{},opt=(a,v,f)=>a.map(x=>`<option value="${x[0]}"${x[0]===v?' selected':''}>${x[1]}</option>`).join('');
+ p.innerHTML=`<div style="max-width:900px;margin:0 auto;background:#fff;border-radius:14px;padding:16px" dir="rtl"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">مدیریت کاربران</b><button class="ghost" onclick="$('upanel').remove()">بستن</button></div>
+ <div style="overflow-x:auto;margin:10px 0"><table style="width:100%;min-width:640px"><tr><th>نام کاربری</th><th>نام</th><th>نقش</th><th>شهر</th><th>کارشناس</th><th>وضعیت</th><th></th></tr>${ulist.map((x,i)=>`<tr><td>${escH(x.username)}</td><td>${escH(x.full_name||'')}</td><td>${ROLEFA[x.role]||x.role}</td><td>${escH(x.city||'—')}</td><td>${escH(x.expert_name||'—')}</td><td>${x.is_active?'فعال':'غیرفعال'}</td><td>${x.source==='env'?'<small>اضطراری</small>':`<button class="ghost" onclick="uedit=ulist[${i}];renderUsers()">ویرایش</button>`}</td></tr>`).join('')}</table></div>
+ <b>${u.id?'ویرایش کاربر':'کاربر جدید'}</b><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:6px">
+ <div><label>نام کاربری *</label><input id="u_un" value="${escH(u.username||'')}" autocapitalize="none"></div>
+ <div><label>نام و نام خانوادگی *</label><input id="u_fn" value="${escH(u.full_name||'')}"></div>
+ <div><label>کلمه عبور ${u.id?'(خالی = بدون تغییر)':'* (حداقل ۸ کاراکتر)'}</label><input id="u_pw" type="password" autocomplete="new-password"></div>
+ <div><label>نقش *</label><select id="u_role">${opt(Object.entries(ROLEFA),u.role||'viewer')}</select></div>
+ <div><label>شهر</label><select id="u_city">${opt([['','—'],['اراک','اراک'],['قزوین','قزوین'],['قم','قم']],u.city||'')}</select></div>
+ <div><label>عنوان شغلی</label><input id="u_ti" value="${escH(u.title||'')}"></div>
+ <div><label>کارشناس مرتبط (برای نقش کارشناس *)</label><select id="u_ex">${opt([['','—'],...Object.keys(EXP).map(k=>[k,k])],u.expert_name||'')}</select></div>
+ <div><label>وضعیت</label><select id="u_ac"><option value="1"${u.is_active!==false?' selected':''}>فعال</option><option value="0"${u.is_active===false?' selected':''}>غیرفعال</option></select></div></div>
+ <div id="umsg" class="msg err"></div><div style="margin-top:10px;display:flex;gap:8px"><button class="primary" onclick="saveU()">ذخیره</button>${u.id?'<button class="ghost" onclick="uedit=null;renderUsers()">کاربر جدید</button>':''}</div></div>`}
+async function saveU(){let b={username:$('u_un').value,full_name:$('u_fn').value,role:$('u_role').value,city:$('u_city').value,title:$('u_ti').value,expert_name:$('u_ex').value,is_active:$('u_ac').value==='1'},pw=$('u_pw').value;if(pw)b.password=pw;
+ try{await api('users'+(uedit?'?id='+encodeURIComponent(uedit.id):''),{method:uedit?'PATCH':'POST',body:b});ulist=(await api('users')).users;uedit=null;renderUsers();toast('ذخیره شد')}catch(e){$('umsg').textContent=e.message}}
 async function load(){try{rows=(await api('promoters')).rows}catch(e){if(e.status===401){showLogin();return}toast(netMsg(e));return}fillSel();render()}
 function fillSel(){[['fe','expert_name'],['fc','activity_city'],['fs','supervisor_name']].forEach(([id,k])=>{let cur=$(id).value,first=$(id).options[0].outerHTML;let vals=[...new Set(rows.map(r=>r[k]).filter(Boolean))].sort();$(id).innerHTML=first+vals.map(v=>`<option>${v}</option>`).join('');$(id).value=cur})}
 function clearF(){$('q').value='';['fe','fc','fs'].forEach(i=>$(i).value='');pg=1;render()}
@@ -117,7 +135,9 @@ function render(){let f=filtered(),ps=+$('ps').value,pages=Math.max(1,Math.ceil(
  <td><div class="gen"><button class="btn b1" onclick="gen('${r.id}','box','plain')">Box ساده</button><button class="btn b2" onclick="gen('${r.id}','box','letter')">Box سربرگ</button><button class="btn b3" onclick="gen('${r.id}','cab','plain')">Cab ساده</button><button class="btn b4" onclick="gen('${r.id}','cab','letter')">Cab سربرگ</button><button class="btn b5" onclick="openEdit('${r.id}')">جزئیات / ویرایش</button></div></td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">موردی یافت نشد</td></tr>';
  let b='';for(let p=1;p<=pages;p++)if(p===1||p===pages||Math.abs(p-pg)<=1)b+=`<button class="${p===pg?'on':''}" onclick="pg=${p};render()">${p}</button>`;else if(Math.abs(p-pg)===2)b+='…';$('pgn').innerHTML=b}
 function openEdit(id){editId=id;let r=id?rows.find(x=>x.id===id):{marital_status:'مجرد',military_status:'پایان خدمت',contract_date:today(),supervisor_name:'سعید رضایی',promoter_kind:'new'};
- FIELDS.forEach(k=>$('f_'+k).value=(/date/.test(k)?fmtD(r[k]):r[k])||'');$('mt').textContent=id?'ویرایش: '+r.full_name:'بازاریاب جدید';$('delBtn').classList.toggle('hide',!id||!me||me.role!=='admin');$('mmsg').textContent='';if(!$('f_activity_city').value||EXP[$('f_expert_name').value])setCity();autoEnd();loadDocs(id);$('modal').classList.remove('hide')}
+ FIELDS.forEach(k=>$('f_'+k).value=(/date/.test(k)?fmtD(r[k]):r[k])||'');$('mt').textContent=id?'ویرایش: '+r.full_name:'بازاریاب جدید';$('delBtn').classList.toggle('hide',!id||!me||me.role!=='super_admin');$('mmsg').textContent='';if(!$('f_activity_city').value||EXP[$('f_expert_name').value])setCity();autoEnd();loadDocs(id);let ro=me.role==='viewer';document.querySelectorAll('#modal input,#modal select,#modal textarea').forEach(e=>e.disabled=ro);document.querySelector('[onclick="saveM()"]').style.display=ro?'none':'';
+ if(me.role==='specialist'&&!ro){$('f_expert_name').value=me.expert||'';$('f_expert_name').disabled=true;setCity()}
+ $('modal').classList.remove('hide')}
 function closeM(){$('modal').classList.add('hide')}
 function today(){try{let p=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),g=t=>p.find(x=>x.type===t).value;return g('day')+'/'+g('month')+'/'+g('year')}catch(e){return''}}
 const _pf=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'});
@@ -135,7 +155,7 @@ function fmtD(s){let m=String(s||'').match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);re
 const KINDS=[['selfie','عکس سلفی با کارشناس'],['identity','مدرک هویتی'],['bank','مدارک حساب بانکی'],['sana','مدرک ثبت‌نام ثنا']];
 let docsHave={},pend={};
 async function loadDocs(id){pend={};docsHave={};if(id){try{(await api('files?id='+encodeURIComponent(id))).files.forEach(f=>docsHave[f.kind]=f)}catch(e){}}renderDocs()}
-function renderDocs(){$('docsBox').innerHTML='<div style="margin:14px 0 6px;font-weight:700">مدارک (اختیاری)</div>'+KINDS.map(([k,t])=>{let h=docsHave[k],p=pend[k];return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0;padding:8px;border:1px solid #d7e5dc;border-radius:10px"><b style="min-width:150px">${t}</b><span style="flex:1;min-width:120px;font-size:13px">${p?'انتخاب‌شده: '+escH(p.name):h?'✔ '+escH(h.file_name):'فایلی انتخاب نشده'}</span>${h&&!p?`<button type="button" class="ghost" onclick="viewF('${h.id}')">مشاهده</button>${me&&me.role==='admin'?`<button type="button" class="ghost" onclick="delF('${h.id}')">حذف</button>`:''}`:''}<input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onchange="pick('${k}',this)"></div>`}).join('')}
+function renderDocs(){$('docsBox').innerHTML='<div style="margin:14px 0 6px;font-weight:700">مدارک (اختیاری)</div>'+KINDS.map(([k,t])=>{let h=docsHave[k],p=pend[k];return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0;padding:8px;border:1px solid #d7e5dc;border-radius:10px"><b style="min-width:150px">${t}</b><span style="flex:1;min-width:120px;font-size:13px">${p?'انتخاب‌شده: '+escH(p.name):h?'✔ '+escH(h.file_name):'فایلی انتخاب نشده'}</span>${h&&!p?`<button type="button" class="ghost" onclick="viewF('${h.id}')">مشاهده</button>${me&&['super_admin','manager'].includes(me.role)?`<button type="button" class="ghost" onclick="delF('${h.id}')">حذف</button>`:''}`:''}${me&&me.role==='viewer'?'':`<input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onchange="pick('${k}',this)">`}</div>`}).join('')}
 function pick(k,el){let f=el.files[0];if(!f)return;if(!/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(f.type)||f.size>10485760){toast('فقط تصویر یا PDF تا ۱۰ مگابایت');el.value='';return}pend[k]=f;renderDocs()}
 async function viewF(id){try{window.open((await api('fileview?id='+id)).url,'_blank')}catch(e){toast(e.message)}}
 async function delF(id){if(!confirm('این مدرک حذف شود؟'))return;try{await api('filedel?id='+id,{method:'DELETE'});await loadDocs(editId)}catch(e){toast(e.message)}}
@@ -163,5 +183,59 @@ async function gen(id,type,mode){let r=rows.find(x=>x.id===id);let miss=[];[['fu
   let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(`قرارداد_${type==='cab'?'Cab':'Box'}_${mode==='plain'?'ساده':'سربرگ'}_${r.full_name}`.replace(/[\\\/:*?"<>|&]/g,'-'))+'.docx';document.body.appendChild(a);a.click();a.remove();toast('فایل قرارداد ساخته شد ✓')
  }catch(e){alert('خطا در ساخت قرارداد: '+e.message)}}
 $('f_contract_end_date').addEventListener('input',e=>e.target.dataset.touched='1');
+
+// ======== کارت شناسایی ========
+const CARD={W:717,H:905,S:3,ph:{x:186,y:102,w:206,h:263},nm:{ax:278,by:534,max:235},cd:{ax:160,by:599,max:117},size:27.5};
+const toFa=s=>String(s||'').replace(/[0-9]/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]).replace(/[٠-٩]/g,d=>'۰۱۲۳۴۵۶۷۸۹'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+function removeBg(im){const w=im.width,h=im.height,d=im.data,N=w*h,s3=[];
+ const at=(x,y)=>{const i=(y*w+x)*4;return[d[i],d[i+1],d[i+2]]};
+ for(let x=0;x<w;x+=2){s3.push(at(x,0));s3.push(at(x,2))}for(let y=0;y<h*0.7;y+=2){s3.push(at(0,y));s3.push(at(w-1,y));s3.push(at(2,y));s3.push(at(w-3,y))}
+ const med=k=>{const a=s3.map(p=>p[k]).sort((p,q)=>p-q);return a[a.length>>1]},bg=[med(0),med(1),med(2)];
+ let v=0;s3.forEach(p=>{v+=(p[0]-bg[0])**2+(p[1]-bg[1])**2+(p[2]-bg[2])**2});const sd=Math.sqrt(v/s3.length/3),T=Math.min(62,Math.max(28,28+2.2*sd));
+ const near=i=>{const j=i*4,a=d[j]-bg[0],b=d[j+1]-bg[1],c=d[j+2]-bg[2];return Math.sqrt(a*a+b*b+c*c)<T};
+ const isBg=new Uint8Array(N),q=new Int32Array(N);let qh=0,qt=0;
+ const push=i=>{if(!isBg[i]&&near(i)){isBg[i]=1;q[qt++]=i}};
+ for(let x=0;x<w;x++)push(x);for(let y=0;y<h*0.85;y++){push(y*w);push(y*w+w-1)}
+ while(qh<qt){const i=q[qh++],x=i%w,y=(i-x)/w;if(x>0)push(i-1);if(x<w-1)push(i+1);if(y>0)push(i-w);if(y<h-1)push(i+w)}
+ let fg=new Float32Array(N);for(let i=0;i<N;i++)fg[i]=isBg[i]?0:1;
+ const f2=new Float32Array(N);for(let y=0;y<h;y++)for(let x=0;x<w;x++){let m=1;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const X=x+dx,Y=y+dy;if(X>=0&&X<w&&Y>=0&&Y<h&&fg[Y*w+X]<m)m=fg[Y*w+X]}f2[y*w+x]=m}
+ for(let pass=0;pass<2;pass++){const o=new Float32Array(N);for(let y=0;y<h;y++)for(let x=0;x<w;x++){let a=0,c=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const X=x+dx,Y=y+dy;if(X>=0&&X<w&&Y>=0&&Y<h){a+=f2[Y*w+X];c++}}o[y*w+x]=a/c}f2.set(o)}
+ for(let i=0;i<N;i++){const a=f2[i],j=i*4;d[j]=d[j]*a+255*(1-a);d[j+1]=d[j+1]*a+255*(1-a);d[j+2]=d[j+2]*a+255*(1-a);d[j+3]=255}
+ return{bg,T}}
+function renderCard(img,name,code,o){o=o||{};const S=CARD.S,P=CARD.ph;
+ const up=document.createElement('canvas');up.width=CARD.H*S;up.height=CARD.W*S;const u=up.getContext('2d');u.fillStyle='#fff';u.fillRect(0,0,up.width,up.height);u.scale(S,S);
+ if(img){const pc=document.createElement('canvas');pc.width=P.w*S;pc.height=P.h*S;const p=pc.getContext('2d');p.fillStyle='#fff';p.fillRect(0,0,pc.width,pc.height);
+  const z=o.zoom||1,sc=Math.max(pc.width/img.width,pc.height/img.height)*z,dw=img.width*sc,dh=img.height*sc,px=(o.px==null?.5:o.px),py=(o.py==null?.3:o.py);
+  p.drawImage(img,(pc.width-dw)*px,(pc.height-dh)*py,dw,dh);
+  if(o.rmbg!==false){const id=p.getImageData(0,0,pc.width,pc.height);removeBg(id);p.putImageData(id,0,0)}
+  u.drawImage(pc,P.x,P.y,P.w,P.h)}
+ u.fillStyle='#000';u.direction='rtl';u.textAlign='right';u.textBaseline='alphabetic';
+ const put=(t,c)=>{if(!t)return;let sz=CARD.size;u.font='700 '+sz+'px Snapp';const w=u.measureText(t).width;if(w>c.max){sz=Math.max(12,sz*c.max/w);u.font='700 '+sz+'px Snapp'}u.fillText(t,c.ax,c.by)};
+ put(String(name||'').trim(),CARD.nm);put(toFa(String(code||'').trim()),CARD.cd);
+ const out=document.createElement('canvas');out.width=CARD.W*S;out.height=CARD.H*S;const g=out.getContext('2d');g.translate(out.width,0);g.rotate(Math.PI/2);g.drawImage(up,0,0);return out}
+let cardImg=null;
+function showCard(){let p=$('cpanel');if(p)p.remove();p=document.createElement('div');p.id='cpanel';p.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;overflow:auto;padding:16px';
+ p.innerHTML=`<div style="max-width:880px;margin:0 auto;background:#fff;border-radius:14px;padding:16px" dir="rtl"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">ساخت کارت شناسایی</b><button class="ghost" onclick="$('cpanel').remove()">بستن</button></div>
+ <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px"><div style="flex:1;min-width:260px">
+ <label>عکس *</label><input id="c_ph" type="file" accept="image/jpeg,image/png,image/webp" onchange="cardPick(this)">
+ <label>نام و نام خانوادگی *</label><input id="c_nm" oninput="cardDraw()" placeholder="مثلاً ابولفضل موزونی">
+ <label>کد بازاریابی *</label><input id="c_cd" inputmode="numeric" oninput="cardDraw()" placeholder="مثلاً 96745">
+ <label><input type="checkbox" id="c_bg" checked onchange="cardDraw()" style="width:auto"> حذف پس‌زمینه‌ی عکس (سفید شود)</label>
+ <label>بزرگ‌نمایی عکس</label><input type="range" id="c_z" min="100" max="250" value="100" oninput="cardDraw()">
+ <label>جابه‌جایی افقی</label><input type="range" id="c_x" min="0" max="100" value="50" oninput="cardDraw()">
+ <label>جابه‌جایی عمودی</label><input type="range" id="c_y" min="0" max="100" value="30" oninput="cardDraw()">
+ <div id="c_msg" class="msg err"></div><button class="primary" style="margin-top:10px" onclick="cardDownload()">دانلود کارت (PNG)</button></div>
+ <div style="flex:1;min-width:260px;text-align:center"><canvas id="c_cv" style="width:100%;max-width:340px;border:1px solid #cfe0d5;border-radius:8px;background:#fff"></canvas></div></div></div>`;
+ document.body.appendChild(p);cardImg=null;cardDraw()}
+function cardPick(el){const f=el.files[0];if(!f)return;if(!/^image\/(jpeg|png|webp)$/.test(f.type)||f.size>15e6){$('c_msg').textContent='فقط تصویر JPG/PNG/WEBP تا ۱۵ مگابایت';return}
+ const im=new Image();im.onload=()=>{cardImg=im;$('c_msg').textContent='';cardDraw()};im.onerror=()=>{$('c_msg').textContent='تصویر خوانده نشد'};im.src=URL.createObjectURL(f)}
+let cardT=0;
+function cardDraw(){cancelAnimationFrame(cardT);cardT=requestAnimationFrame(async()=>{try{await document.fonts.load('700 30px Snapp')}catch(e){}
+ const c=renderCard(cardImg,$('c_nm').value,$('c_cd').value,{rmbg:$('c_bg').checked,zoom:$('c_z').value/100,px:$('c_x').value/100,py:$('c_y').value/100}),v=$('c_cv');if(!v)return;v.width=c.width/2;v.height=c.height/2;v.getContext('2d').drawImage(c,0,0,v.width,v.height)})}
+async function cardDownload(){const n=$('c_nm').value.trim(),cd=$('c_cd').value.trim();if(!cardImg||!n||!cd){$('c_msg').textContent='عکس، نام و کد بازاریابی را وارد کنید';return}
+ try{await document.fonts.load('700 30px Snapp')}catch(e){}
+ const c=renderCard(cardImg,n,cd,{rmbg:$('c_bg').checked,zoom:$('c_z').value/100,px:$('c_x').value/100,py:$('c_y').value/100});
+ c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='کارت-'+n.replace(/[\\/:*?"<>|]/g,'')+'.png';document.body.appendChild(a);a.click();a.remove()},'image/png')}
+
 boot();
 </script></body></html>
