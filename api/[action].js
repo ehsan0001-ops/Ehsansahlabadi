@@ -38,8 +38,8 @@ const sign=p=>{const d=Buffer.from(JSON.stringify(p)).toString('base64url');retu
 function verify(t){const[d,s]=String(t||'').split('.');if(!d||!s)return null;const a=Buffer.from(s),b=Buffer.from(hm(d));if(a.length!==b.length||!c.timingSafeEqual(a,b))return null;try{const p=JSON.parse(Buffer.from(d,'base64url'));return p.exp>Date.now()?p:null}catch{return null}}
 const users=()=>{try{return JSON.parse(process.env.AUTH_USERS||'[]')}catch{return[]}};
 function checkPw(pw,h){const[t,s,x]=String(h).split('$');if(t!=='scrypt')return false;const d=c.scryptSync(pw,Buffer.from(s,'base64'),32),e=Buffer.from(x,'base64');return e.length===d.length&&c.timingSafeEqual(d,e)}
-async function sess(req){const k=(req.headers.cookie||'').split(/;\s*/).find(x=>x.startsWith('sid='));const p=k&&verify(k.slice(4));if(!p)return null;const e=users().find(x=>x.u===p.u);if(e)return{u:e.u,r:ROLEMAP[e.r]||e.r,expert:'',name:e.u};
- try{const d=(await sb('app_users?select=username,role,expert_name,full_name,is_active&username=eq.'+encodeURIComponent(p.u)))[0];return d&&d.is_active?{u:d.username,r:d.role,expert:d.expert_name||'',name:d.full_name}:null}catch(e){return null}}
+async function sess(req){const k=(req.headers.cookie||'').split(/;\s*/).find(x=>x.startsWith('sid='));const p=k&&verify(k.slice(4));if(!p)return null;const e=users().find(x=>x.u===p.u);if(e)return{u:e.u,r:ROLEMAP[e.r]||e.r,expert:'',name:e.u,src:'env'};
+ try{const d=(await sb('app_users?select=username,role,expert_name,full_name,is_active&username=eq.'+encodeURIComponent(p.u)))[0];return d&&d.is_active?{u:d.username,r:d.role,expert:d.expert_name||'',name:d.full_name,src:'db'}:null}catch(e){return null}}
 async function sb(path,o={}){const K=process.env.SUPABASE_SERVICE_ROLE_KEY,U=process.env.SUPABASE_URL;if(!K||!U)throw new Error('cfg');const r=await fetch(U+'/rest/v1/'+path,{...o,headers:{apikey:K,Authorization:'Bearer '+K,...(o.body?{'Content-Type':'application/json'}:{}),'Range-Unit':'items',Prefer:'return=representation',...(o.headers||{})}});const t=await r.text();if(!r.ok)throw new Error('db:'+r.status+' '+t.slice(0,200));return t?JSON.parse(t):[]}
 module.exports=async(req,res)=>{
  res.setHeader('Cache-Control','no-store');
@@ -60,7 +60,13 @@ module.exports=async(req,res)=>{
   if(a==='logout'&&m==='POST'){res.setHeader('Set-Cookie','sid=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0');return send(200,{ok:true})}
   const s=await sess(req);if(!s)return send(401,{error:'نیاز به ورود'});
   const admin=s.r==='super_admin',id=String(req.query.id||'');
-  if(a==='me'&&m==='GET')return send(200,{username:s.u,role:s.r,expert:s.expert,name:s.name});
+  if(a==='me'&&m==='GET')return send(200,{username:s.u,role:s.r,expert:s.expert,name:s.name,source:s.src});
+  if(a==='mypw'&&m==='POST'){if(s.src!=='db')return send(400,{error:'رمز این کاربر از طریق سایت قابل تغییر نیست'});
+   const b=req.body||{},k='pw:'+s.u,t=tries.get(k)||{n:0,t:Date.now()};if(Date.now()-t.t>9e5){t.n=0;t.t=Date.now()}if(t.n>=5)return send(429,{error:'تلاش‌های ناموفق زیاد است؛ چند دقیقه بعد دوباره امتحان کنید'});
+   const cur=(await sb('app_users?select=password_hash&username=eq.'+encodeURIComponent(s.u)))[0];
+   if(!cur||!checkPw(String(b.current||''),cur.password_hash)){t.n++;tries.set(k,t);return send(400,{error:'رمز فعلی اشتباه است'})}
+   const np=String(b.password||'');if(np.length<8)return send(400,{error:'رمز جدید باید حداقل ۸ کاراکتر باشد'});if(np===String(b.current))return send(400,{error:'رمز جدید باید با رمز فعلی فرق داشته باشد'});
+   await sb('app_users?username=eq.'+encodeURIComponent(s.u),{method:'PATCH',body:JSON.stringify({password_hash:hashPw(np),updated_at:new Date().toISOString()})});tries.delete(k);return send(200,{ok:true})}
   if(a==='users'){if(!can(s,'users'))return send(403,{error:'دسترسی ندارید'});const b=req.body||{};
    if(m==='GET'){const d=await sb('app_users?select=id,username,full_name,role,city,title,expert_name,is_active,created_at&order=created_at');return send(200,{users:[...users().map(x=>({username:x.u,full_name:'(کاربر اضطراری)',role:ROLEMAP[x.r]||x.r,source:'env',is_active:true})),...d]})}
    if(m==='POST'){const v=uval(b,true);if(v.err)return send(400,{error:v.err});if(users().some(x=>x.u===v.o.username))return send(400,{error:'این نام کاربری رزرو است'});try{await sb('app_users',{method:'POST',body:JSON.stringify(v.o)})}catch(e){return send(400,{error:/23505|duplicate/.test(e.message)?'این نام کاربری قبلاً ثبت شده است':'خطا: '+e.message.slice(0,120)})}return send(200,{ok:true})}
