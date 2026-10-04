@@ -53,7 +53,7 @@ input,button,select,textarea{font-family:inherit}
 <div id="lmsg" class="msg err"></div></div></div>
 
 <div id="appView" class="hide">
-<div class="top"><div><h1>📄 داشبورد قراردادهای بازاریاب — اسنپ</h1><div class="sub" id="who"></div></div><div><button class="ghost" onclick="openEdit(null)">➕ بازاریاب جدید</button> <button class="ghost" onclick="showCard()">🪪 کارت شناسایی</button> <button class="ghost hide" id="usersBtn" onclick="showUsers()">👥 کاربران</button> <button class="ghost" onclick="logout()">خروج</button></div></div>
+<div class="top"><div><h1>📄 داشبورد قراردادهای بازاریاب — اسنپ</h1><div class="sub" id="who"></div></div><div><button class="ghost" onclick="openEdit(null)">➕ بازاریاب جدید</button> <button class="ghost hide" id="pwBtn" onclick="showPw()">🔑 تغییر رمز</button> <button class="ghost" onclick="showCard()">🪪 کارت شناسایی</button> <button class="ghost hide" id="usersBtn" onclick="showUsers()">👥 کاربران</button> <button class="ghost" onclick="logout()">خروج</button></div></div>
 <div class="wrap"><div class="card">
 <div class="filters"><input id="q" placeholder="🔍 جستجوی نام، کد ملی، موبایل، کد بازاریاب یا شماره قرارداد..." oninput="pg=1;render()">
 <select id="fe" onchange="pg=1;render()"><option value="">همه کارشناسان</option></select>
@@ -106,7 +106,7 @@ async function login(){$('lmsg').textContent='';let u=$('un').value.trim(),p=$('
  b.disabled=false;b.textContent='ورود'}
 async function logout(){try{await api('logout',{method:'POST'})}catch(e){}location.reload()}
 async function boot(){try{me=await api('me')}catch(e){showLogin();return}
- $('who').textContent='کاربر: '+me.username+' ('+(ROLEFA[me.role]||me.role)+')';$('usersBtn').classList.toggle('hide',me.role!=='super_admin');$('loginView').classList.add('hide');$('appView').classList.remove('hide');await load()}
+ $('who').textContent='کاربر: '+me.username+' ('+(ROLEFA[me.role]||me.role)+')';$('usersBtn').classList.toggle('hide',me.role!=='super_admin');$('pwBtn').classList.toggle('hide',me.source!=='db');$('loginView').classList.add('hide');$('appView').classList.remove('hide');await load()}
 const ROLEFA={super_admin:'مدیر کل',manager:'مدیر',supervisor:'سرپرست',specialist:'کارشناس',viewer:'فقط‌مشاهده'};
 let ulist=[],uedit=null;
 async function showUsers(){try{ulist=(await api('users')).users;uedit=null;renderUsers()}catch(e){toast(e.message)}}
@@ -236,6 +236,17 @@ async function cardDownload(){const n=$('c_nm').value.trim(),cd=$('c_cd').value.
  try{await document.fonts.load('700 30px Snapp')}catch(e){}
  const c=renderCard(cardImg,n,cd,{rmbg:$('c_bg').checked,zoom:$('c_z').value/100,px:$('c_x').value/100,py:$('c_y').value/100});
  c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='کارت-'+n.replace(/[\\/:*?"<>|]/g,'')+'.png';document.body.appendChild(a);a.click();a.remove()},'image/png')}
+
+
+function showPw(){let p=$('pwpanel');if(p)p.remove();p=document.createElement('div');p.id='pwpanel';p.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;overflow:auto;padding:16px';
+ p.innerHTML=`<div style="max-width:420px;margin:40px auto;background:#fff;border-radius:14px;padding:16px" dir="rtl"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">تغییر کلمه عبور</b><button class="ghost" onclick="$('pwpanel').remove()">بستن</button></div>
+ <label>کلمه عبور فعلی *</label><input id="pw_cur" type="password" autocomplete="current-password">
+ <label>کلمه عبور جدید * (حداقل ۸ کاراکتر)</label><input id="pw_new" type="password" autocomplete="new-password">
+ <label>تکرار کلمه عبور جدید *</label><input id="pw_rep" type="password" autocomplete="new-password">
+ <div id="pw_msg" class="msg err"></div><button class="primary" style="margin-top:10px" onclick="savePw()">ذخیره</button></div>`;document.body.appendChild(p)}
+async function savePw(){const c=$('pw_cur').value,n=$('pw_new').value,r=$('pw_rep').value,m=$('pw_msg');m.className='msg err';
+ if(!c||!n||!r){m.textContent='همه‌ی فیلدها را پر کنید';return}if(n.length<8){m.textContent='کلمه عبور جدید باید حداقل ۸ کاراکتر باشد';return}if(n!==r){m.textContent='تکرار کلمه عبور با کلمه عبور جدید یکی نیست';return}
+ try{await api('mypw',{method:'POST',body:{current:c,password:n}});$('pwpanel').remove();toast('کلمه عبور با موفقیت تغییر کرد')}catch(e){m.textContent=e.message}}
 
 boot();
 </script></body></html>
