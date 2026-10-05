@@ -71,7 +71,7 @@ input,button,select,textarea{font-family:inherit}
 <div class="g2"><div><label>نام و نام خانوادگی *</label><input id="f_full_name"></div><div><label>نام پدر *</label><input id="f_father_name"></div>
 <div><label>شماره شناسنامه *</label><input id="f_id_booklet_no"></div><div><label>نوع بازاریاب *</label><select id="f_promoter_kind"><option value="new">بازاریاب جدید</option><option value="old">بازاریاب قدیمی</option></select></div>
 <div><label>کد ملی *</label><input id="f_national_id" inputmode="numeric"></div>
-<div><label>تاریخ تولد * (مثلاً 12/05/1370)</label><input id="f_birth_date"></div><div><label>محل تولد *</label><input id="f_birth_place"></div>
+<div><label>تاریخ تولد * (مثلاً 12‏/‏05‏/‏1370)</label><input id="f_birth_date" dir="rtl" inputmode="numeric" placeholder="مثلاً 12‏/‏05‏/‏1370" oninput="dateInp(this)"></div><div><label>محل تولد *</label><input id="f_birth_place"></div>
 <div><label>وضعیت تأهل *</label><select id="f_marital_status"><option>مجرد</option><option>متأهل</option></select></div>
 <div><label>وضعیت خدمت *</label><select id="f_military_status"><option>پایان خدمت</option><option>معافیت</option><option>مشمول</option><option>مشمول نیست (خانم)</option></select></div></div>
 <div class="sec">تماس و بانکی</div>
@@ -84,7 +84,7 @@ input,button,select,textarea{font-family:inherit}
 <div><label>شهر فعالیت (در قرارداد) *</label><input id="f_activity_city" readonly placeholder="با انتخاب کارشناس مشخص می‌شود"></div></div>
 <div class="sec">قرارداد</div>
 <div class="g2"><div><label>شماره قرارداد *</label><input id="f_contract_number" readonly placeholder="به‌صورت خودکار ساخته می‌شود"></div>
-<div><label>تاریخ قرارداد * (مثلاً 10/10/1405)</label><input id="f_contract_date" oninput="autoEnd()"></div>
+<div><label>تاریخ قرارداد * (مثلاً 10‏/‏10‏/‏1405)</label><input id="f_contract_date" dir="rtl" inputmode="numeric" placeholder="مثلاً 10‏/‏10‏/‏1405" oninput="dateInp(this);autoEnd()"></div>
 <div><label>تاریخ پایان (خودکار)</label><input id="f_contract_end_date" readonly></div><div><label>مدت (روز) — محاسبه خودکار</label><input id="f_duration_days" readonly></div></div>
 <div id="docsBox"></div>
 <div style="display:flex;gap:8px;margin-top:16px"><button class="primary" onclick="saveM()">ذخیره</button><button class="danger" id="delBtn" onclick="delM()">حذف</button></div>
@@ -143,15 +143,17 @@ function today(){try{let p=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{ye
 const _pf=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'});
 const _toJ=t=>{const p=_pf.formatToParts(new Date(t)),g=k=>+p.find(x=>x.type===k).value;return[g('year'),g('month'),g('day')]};
 const _p2=n=>String(n).padStart(2,'0');
-function parseJ(s){s=String(s||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).trim();let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/),y,mo,d;if(m){d=+m[1];mo=+m[2];y=+m[3]}else if(m=s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/)){y=+m[1];mo=+m[2];d=+m[3]}else return null;if(mo<1||mo>12||d<1||d>31)return null;const base=Date.UTC(y+621,2,21)+((mo<=6?(mo-1)*31:186+(mo-7)*30)+d-1)*864e5;for(let k=-2;k<=2;k++){const t=base+k*864e5,j=_toJ(t);if(j[0]===y&&j[1]===mo&&j[2]===d)return{t,s:_p2(d)+'/'+_p2(mo)+'/'+y}}return null}
+function parseJ(s){s=String(s||'').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).trim();let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/),y,mo,d;if(m){d=+m[1];mo=+m[2];y=+m[3]}else if(m=s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/)){y=+m[1];mo=+m[2];d=+m[3]}else return null;if(mo<1||mo>12||d<1||d>31)return null;const base=Date.UTC(y+621,2,21)+((mo<=6?(mo-1)*31:186+(mo-7)*30)+d-1)*864e5;for(let k=-2;k<=2;k++){const t=base+k*864e5,j=_toJ(t);if(j[0]===y&&j[1]===mo&&j[2]===d)return{t,s:_p2(d)+'/'+_p2(mo)+'/'+y}}return null}
 const JEND=parseJ('29/12/1405');
 const esc2=0;const escH=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const REQ=FIELDS.filter(k=>!['contract_end_date','duration_days','contract_number','promoter_code','activity_city','promoter_kind'].includes(k));
 const EXP={'احسان سهل آبادی':'اراک','محمد سهل آبادی':'اراک','حسن آقاجان زاده':'قزوین','صمد شمسینی':'قزوین','علیرضا زین العابدینی':'قم'};
 function setCity(){$('f_activity_city').value=EXP[$('f_expert_name').value]||''}
-function calc(v){let c=parseJ(v);if(!c)return{err:'تاریخ قرارداد نامعتبر است (مثال: 10/10/1405)'};let d=Math.round((JEND.t-c.t)/864e5);if(d<0)return{err:'تاریخ قرارداد نباید بعد از 29/12/1405 باشد'};return{d,s:c.s}}
-function autoEnd(){let v=digits($('f_contract_date').value),r=calc(v);$('f_contract_end_date').value=r.err?'':'29/12/1405';$('f_duration_days').value=r.err?'':r.d;$('mmsg').className='msg err';$('mmsg').textContent=r.err&&v?r.err:''}
-function fmtD(s){let m=String(s||'').match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);return m?_p2(m[3])+'/'+_p2(m[2])+'/'+m[1]:(s||'')}
+function calc(v){let c=parseJ(v);if(!c)return{err:'تاریخ قرارداد نامعتبر است (مثال: 10‏/‏10‏/‏1405)'};let d=Math.round((JEND.t-c.t)/864e5);if(d<0)return{err:'تاریخ قرارداد نباید بعد از 29‏/‏12‏/‏1405 باشد'};return{d,s:c.s}}
+function autoEnd(){let v=cleanD(digits($('f_contract_date').value)),r=calc(v);$('f_contract_end_date').value=r.err?'':rtlD('29/12/1405');$('f_duration_days').value=r.err?'':r.d;$('mmsg').className='msg err';$('mmsg').textContent=r.err&&v?r.err:''}
+const RLM='\u200f',cleanD=s=>String(s||'').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,''),rtlD=s=>String(s||'').split('/').join(RLM+'/'+RLM);
+function fmtD(s){s=cleanD(s);let m=s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);return rtlD(m?_p2(m[3])+'/'+_p2(m[2])+'/'+m[1]:s)}
+function dateInp(el){let d=digits(cleanD(el.value)).replace(/\D/g,'').slice(0,8);el.value=rtlD(d.slice(0,2)+(d.length>2?'/'+d.slice(2,4):'')+(d.length>4?'/'+d.slice(4):''))}
 const KINDS=[['selfie','عکس سلفی با کارشناس'],['identity','مدرک هویتی'],['bank','مدارک حساب بانکی'],['sana','مدرک ثبت‌نام ثنا']];
 let docsHave={},pend={};
 async function loadDocs(id){pend={};docsHave={};if(id){try{(await api('files?id='+encodeURIComponent(id))).files.forEach(f=>docsHave[f.kind]=f)}catch(e){}}renderDocs()}
@@ -160,14 +162,14 @@ function pick(k,el){let f=el.files[0];if(!f)return;if(!/^(image\/(jpeg|png|webp)
 async function viewF(id){try{window.open((await api('fileview?id='+id)).url,'_blank')}catch(e){toast(e.message)}}
 async function delF(id){if(!confirm('این مدرک حذف شود؟'))return;try{await api('filedel?id='+id,{method:'DELETE'});await loadDocs(editId)}catch(e){toast(e.message)}}
 async function uploadPending(pid){for(const [k,t] of KINDS){let f=pend[k];if(!f)continue;$('mmsg').className='msg';$('mmsg').textContent='در حال آپلود «'+t+'»...';try{let u=await api('upload',{method:'POST',body:{promoter_id:pid,kind:k,file_name:f.name,mime:f.type,size:f.size}});let fd=new FormData();fd.append('cacheControl','3600');fd.append('',f);let r=await fetch(u.url,{method:'PUT',body:fd});if(!r.ok)throw new Error('آپلود ناموفق ('+r.status+')');await api('fileok',{method:'POST',body:{promoter_id:pid,kind:k,path:u.path,file_name:f.name,mime:f.type,size:f.size}})}catch(e){throw new Error('اطلاعات ذخیره شد ولی آپلود «'+t+'» ناموفق بود: '+e.message+' — بازاریاب را دوباره باز کنید و مدرک را بارگذاری کنید')}}}
-async function saveM(){let o={};FIELDS.forEach(k=>o[k]=$('f_'+k).value.trim());['national_id','id_booklet_no','postal_code','phone_landline','mobile','contract_date','contract_end_date','duration_days','birth_date','promoter_code'].forEach(k=>o[k]=digits(o[k]));o.bank_account=digits(o.bank_account).toUpperCase();
+async function saveM(){let o={};FIELDS.forEach(k=>o[k]=$('f_'+k).value.trim());['national_id','id_booklet_no','postal_code','phone_landline','mobile','contract_date','contract_end_date','duration_days','birth_date','promoter_code'].forEach(k=>o[k]=cleanD(digits(o[k])));o.bank_account=digits(o.bank_account).toUpperCase();
  for(const k of REQ){if(!o[k]){let l=($('f_'+k).previousElementSibling.textContent||'').replace(/\*.*/,'').trim();$('mmsg').className='msg err';$('mmsg').textContent='فیلد «'+l+'» الزامی است';$('f_'+k).focus();return}}
  let kd=$('f_promoter_kind').value,ni=digits(o.national_id||''),pc=digits(o.promoter_code||''),sh=digits(o.bank_account||'').replace(/\s+/g,'').toUpperCase();
  if(!EXP[o.expert_name]){$('mmsg').className='msg err';$('mmsg').textContent='نام کارشناس را از لیست انتخاب کنید';return}
  if(!/^\d{10}$/.test(ni)){$('mmsg').className='msg err';$('mmsg').textContent='کد ملی باید دقیقاً ۱۰ رقم باشد';return}
  if(kd==='old'&&!/^\d{5}$/.test(pc)){$('mmsg').className='msg err';$('mmsg').textContent='کد بازاریابی باید دقیقاً ۵ رقم باشد';return}
  if(!/^IR\d{24}$/.test(sh)){$('mmsg').className='msg err';$('mmsg').textContent='شماره شبا صحیح نمی باشد';return}
- if(!parseJ(o.birth_date)||calc(o.contract_date).err){$('mmsg').className='msg err';$('mmsg').textContent=calc(o.contract_date).err||'تاریخ تولد نامعتبر است (مثال: 12/05/1370)';return}
+ if(!parseJ(o.birth_date)||calc(o.contract_date).err){$('mmsg').className='msg err';$('mmsg').textContent=calc(o.contract_date).err||'تاریخ تولد نامعتبر است (مثال: 12‏/‏05‏/‏1370)';return}
  try{var res=await api('promoters'+(editId?'?id='+encodeURIComponent(editId):''),{method:editId?'PATCH':'POST',body:o});await uploadPending(editId||res.id)}catch(error){$('mmsg').className='msg err';$('mmsg').textContent=error.message;return}closeM();await load();toast('ذخیره شد ✓')}
 async function delM(){if(!editId||!confirm('این بازاریاب و اطلاعاتش حذف شود؟'))return;try{await api('promoters?id='+encodeURIComponent(editId),{method:'DELETE'})}catch(error){$('mmsg').textContent=error.message;return}closeM();await load()}
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
