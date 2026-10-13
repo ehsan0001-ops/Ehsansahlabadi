@@ -77,7 +77,7 @@ module.exports=async(req,res)=>{
     if(own.username===s.u&&((b.is_active!=null&&!b.is_active)||(b.role!=null&&b.role!==own.role)))return send(400,{error:'نمی‌توانید نقش یا وضعیت حساب خودتان را تغییر دهید'});
     const v=uval(b,false,own);if(v.err)return send(400,{error:v.err});
     try{await sb('app_users?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(v.o)})}catch(e){return send(400,{error:/23505|duplicate/.test(e.message)?'این نام کاربری قبلاً ثبت شده است':'خطا: '+e.message.slice(0,120)})}return send(200,{ok:true})}}
-  if(a==='template'&&m==='GET'){if(!can(s,'template'))return send(403,{error:'دسترسی ندارید'});const T=require('./_tpl.js'),t=req.query.type;return T[t]&&(t==='cab'||t==='box')?send(200,{b64:T[t]}):send(400,{error:'نوع نامعتبر'})}
+  if(a==='template'&&m==='GET'){if(!can(s,'template'))return send(403,{error:'دسترسی ندارید'});const T=require('./_tpl.js'),t=req.query.type;if(!(T[t]&&(t==='cab'||t==='box')))return send(400,{error:'نوع نامعتبر'});if(req.query.fmt==='bin'){res.setHeader('Content-Type','application/octet-stream');res.setHeader('Cache-Control','private, max-age=86400');return res.status(200).end(Buffer.from(T[t],'base64'))}return send(200,{b64:T[t]})}
   if(a==='promoters'){
    if(m==='GET'){const[rows,fl]=await Promise.all([all('contract_promoters?select=*&order=full_name'+(s.r==='specialist'?'&expert_name=eq.'+encodeURIComponent(s.expert||'-'):'')),all('promoter_files?select=promoter_id,kind&order=id')]);const mp={};fl.forEach(f=>(mp[f.promoter_id]=mp[f.promoter_id]||[]).push(f.kind));rows.forEach(r=>r.docs=mp[r.id]||[]);return send(200,{rows})}
    if(m==='POST'||m==='PATCH'){if(!can(s,'write'))return send(403,{error:'دسترسی ندارید'});const b=req.body||{},o={};FIELDS.forEach(k=>o[k]=b[k]==null?'':String(b[k]).trim().slice(0,500));if(s.r==='specialist')o.expert_name=s.expert;
@@ -119,4 +119,3 @@ module.exports=async(req,res)=>{
 process.on('unhandledRejection',e=>console.error('unhandledRejection',e));
 const _handler=module.exports;
 module.exports=async(req,res)=>{try{await _handler(req,res)}catch(e){console.error(e);if(!res.headersSent){res.status(500).json({error:'خطای داخلی سرور: '+String((e&&e.stack)||e).slice(0,500)})}}};
-
