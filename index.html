@@ -75,6 +75,8 @@ input,select,textarea{font-size:16px}
 @media(max-width:700px){.modal{padding:0;align-items:stretch}.mbox{border-radius:0;max-width:none;min-height:100%;margin:0;padding:14px 14px 96px}
  .mact{position:fixed;bottom:0;left:0;right:0;background:#fff;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);z-index:60;margin:0;box-shadow:0 -8px 24px #0f2a1a14}}
 @media(min-width:900px){.col{max-width:980px}#lcards,#scards{display:grid;grid-template-columns:1fr 1fr;gap:10px}#lcards .pc,#scards .pc{margin:0}}
+.pdfb{grid-column:1/-1;display:block;text-align:center;text-decoration:none;background:#fff;color:var(--g1);border:1.5px solid var(--g1);font-weight:700}
+a.pb{text-decoration:none}
 </style></head><body>
 
 <div id="loginView" class="login hide"><div class="card"><h2>Snapp Promoter Contracts</h2><div style="color:var(--muted);font-size:12px">مدیریت بازاریاب‌ها و صدور قرارداد</div>
@@ -92,7 +94,7 @@ input,select,textarea{font-size:16px}
 <button class="ghost" style="width:100%" onclick="clearF()">پاک‌کردن جستجو و فیلترها</button></div>
 <div class="bar2" id="scnt"></div><div id="scards"></div><button class="ghost more hide" id="smore" onclick="sshow+=20;renderSearch()">نمایش بیشتر</button></section>
 <section id="tabProfile" class="hide"><div class="card prof"><div class="av" id="pav">؟</div><div class="pn" id="pname"></div><div class="pr" id="prole"></div><div class="pm" id="pmeta"></div></div>
-<div class="card plist"><button class="pb hide" id="pwBtn" onclick="showPw()">🔑 تغییر کلمه عبور</button><button class="pb" onclick="showCard()">🪪 ساخت کارت شناسایی</button><button class="pb hide" id="usersBtn" onclick="showUsers()">👥 مدیریت کاربران</button><button class="pb out" onclick="logout()">🚪 خروج از حساب</button></div>
+<div class="card plist"><button class="pb hide" id="pwBtn" onclick="showPw()">🔑 تغییر کلمه عبور</button><button class="pb" onclick="showCard()">🪪 ساخت کارت شناسایی</button><button class="pb hide" id="usersBtn" onclick="showUsers()">👥 مدیریت کاربران</button><a class="pb" href="https://www.eboo.ir/%D8%AA%D8%A8%D8%AF%DB%8C%D9%84-word-%D8%A8%D9%87-pdf" target="_blank" rel="noopener noreferrer">📄 تبدیل Word به PDF (سایت ایبو) ↗</a><button class="pb out" onclick="logout()">🚪 خروج از حساب</button></div>
 <div class="foot">Snapp Promoter Contracts · © 2026 Ehsan Sahlabadi</div></section>
 </div>
 <nav class="tabbar"><button class="new" id="tNew" onclick="openEdit(null)"><span class="ic">➕</span>قرارداد جدید</button><button id="tList" class="on" onclick="go('list')"><span class="ic">📂</span>قراردادهای من</button><button id="tSearch" onclick="go('search')"><span class="ic">🔍</span>جستجو</button><button id="tProfile" onclick="go('profile')"><span class="ic">👤</span>پروفایل</button></nav>
@@ -279,14 +281,14 @@ async function savePw(){const c=$('pw_cur').value,n=$('pw_new').value,r=$('pw_re
 
 
 // ======== نمای اپلیکیشنی ========
-let lshow=20,sshow=20;
+let lshow=20,sshow=20;const PDF_URL='https://www.eboo.ir/%D8%AA%D8%A8%D8%AF%DB%8C%D9%84-word-%D8%A8%D9%87-pdf';
 const ROLEFA2={super_admin:'مدیر کل',manager:'مدیر',supervisor:'سرپرست',specialist:'کارشناس',viewer:'فقط‌مشاهده'};
 function cardHtml(r){const can=me&&me.role!=='viewer';
  return `<div class="pc"><div class="pc1"><div class="nm">${escH(r.full_name||'—')}</div><div>${r.activity_city?`<span class="chip">${escH(r.activity_city)}</span>`:''}${r.promoter_kind==='old'?'<span class="chip">قدیمی</span>':''}</div></div>
  <div class="num">${escH(r.contract_number||'شماره قرارداد ثبت نشده')}</div>
  <div class="meta"><span>📅 ${r.contract_date?toFa(fmtD(r.contract_date)):'—'}</span><span>🆔 ${escH(r.national_id?toFa(r.national_id):'—')}</span><span>👤 ${escH(r.expert_name||'—')}</span><span>📎 ${toFa((r.docs||[]).length)} از ۴ مدرک</span></div>
  <div class="acts"><button class="ghost" onclick="openEdit('${r.id}')">جزئیات / ویرایش</button>${can?`<button class="primary sm" onclick="this.closest('.pc').querySelector('.gp').classList.toggle('hide')">📝 ساخت قرارداد</button>`:''}</div>
- ${can?`<div class="gp hide"><button class="btn b2" onclick="gen('${r.id}','box','letter')">Box سربرگ</button><button class="btn b1" onclick="gen('${r.id}','box','plain')">Box ساده</button><button class="btn b4" onclick="gen('${r.id}','cab','letter')">Cab سربرگ</button><button class="btn b3" onclick="gen('${r.id}','cab','plain')">Cab ساده</button></div>`:''}</div>`}
+ ${can?`<div class="gp hide"><button class="btn b2" onclick="gen('${r.id}','box','letter')">Box سربرگ</button><button class="btn b1" onclick="gen('${r.id}','box','plain')">Box ساده</button><button class="btn b4" onclick="gen('${r.id}','cab','letter')">Cab سربرگ</button><button class="btn b3" onclick="gen('${r.id}','cab','plain')">Cab ساده</button><a class="btn pdfb" href="${PDF_URL}" target="_blank" rel="noopener noreferrer">📄 تبدیل فایل Word به PDF ↗</a></div>`:''}</div>`}
 function renderList(){const all=rows.slice().sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||''))||String(a.full_name).localeCompare(String(b.full_name),'fa'));
  $('lcnt').textContent=all.length?toFa(all.length)+' قرارداد':'';$('lcards').innerHTML=all.slice(0,lshow).map(cardHtml).join('')||'<div class="empty">هنوز قراردادی ثبت نشده است.<br>با دکمه‌ی ➕ پایین، قرارداد جدید بسازید.</div>';$('lmore').classList.toggle('hide',all.length<=lshow)}
 function renderSearch(){const f=filtered();$('scnt').textContent=toFa(f.length)+' نتیجه';$('scards').innerHTML=f.slice(0,sshow).map(cardHtml).join('')||'<div class="empty">موردی پیدا نشد.</div>';$('smore').classList.toggle('hide',f.length<=sshow)}
